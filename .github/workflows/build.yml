@@ -5,27 +5,39 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Contenu du dossier
+        run: ls -la . src
+
       - name: Pod install
         working-directory: src
         run: pod install
+
       - name: Build
         working-directory: src
         run: |
+          WS=$(ls -d *.xcworkspace | head -n1)
+          PROJ=$(ls -d *.xcodeproj | head -n1)
+          SCHEME=$(xcodebuild -list -project "$PROJ" | sed -n '/Schemes:/,$p' | sed -n '2p' | sed 's/^ *//')
+          echo "Workspace : $WS"
+          echo "Scheme    : $SCHEME"
           xcodebuild \
-            -workspace "Parcel - Tracking.xcworkspace" \
-            -scheme "Parcel - Tracking" \
+            -workspace "$WS" \
+            -scheme "$SCHEME" \
             -configuration Release \
             -sdk iphoneos \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" \
             build
+
       - name: Package IPA
         working-directory: src
         run: |
           mkdir Payload
           cp -R build/Build/Products/Release-iphoneos/*.app Payload/
-          zip -r -y Parcel_Tracking.ipa Payload
+          zip -r -y app.ipa Payload
+
       - uses: actions/upload-artifact@v4
         with:
-          name: Parcel_Tracking-ipa
-          path: src/Parcel_Tracking.ipa
+          name: app-ipa
+          path: src/app.ipa
